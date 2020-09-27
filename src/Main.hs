@@ -5,6 +5,7 @@ import Data.Bifunctor
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
 import Data.List.Split
+import Data.Time
 import Evdev
 import Evdev.Codes
 import Evdev.Stream
@@ -33,7 +34,13 @@ type State = Bool
 
 f :: Socket -> SockAddr -> State -> Device -> EventData -> IO State
 f sock addr active dev = \case
-    SyncEvent SynDropped -> error "syndropped" --TODO remove (rn I'm just curious about if it ever happens)
+    SyncEvent SynDropped -> do
+        t <- getCurrentTime
+        --TODO remove (rn I'm just curious about if it ever happens)
+        appendFile
+            ("/home/gthomas/Desktop/net-evdev.log")
+            ("syndropped: " <> show t)
+        pure active
     KeyEvent KeyRightalt t ->
         case t of
             Pressed -> do
