@@ -11,14 +11,15 @@ import Evdev.Stream
 import Network.Socket
 import Network.Socket.ByteString
 import Options.Generic
-import qualified Streamly.Prelude as S
 import Streamly
+import qualified Streamly.Prelude as S
 import System.Process
 
 data Args = Args
     { port :: Int
-    , ip   :: String
-    } deriving (Generic, Show, ParseRecord)
+    , ip :: String
+    }
+    deriving (Generic, Show, ParseRecord)
 
 main :: IO ()
 main = do
@@ -37,8 +38,8 @@ f sock addr active dev = \case
     KeyEvent KeyRightalt t ->
         case t of
             Pressed -> do
-                --TODO the disabling isn't quite gonna work for bluetooth keyboard, with several devices in one
-                    -- only disable the device which pressed altgr
+                {-TODO the disabling isn't quite gonna work for bluetooth keyboard, with several devices in one
+                    only disable the device which pressed altgr -}
                 n <- deviceName dev --TODO cache (although tbh, while it may be IO, it should still be very cheap)
                 callProcess "xinput" ["disable", C.unpack n] --TODO ByteString would be nice
                 -- grabDevice dev -- this confuses X, unfortunately
@@ -65,5 +66,5 @@ allEvs = readEventsMany $ allDevices <> newDevices
 --TODO this isn't nice
 readIp :: String -> HostAddress
 readIp s = case map read $ splitOn "." s of
-    [a,b,c,d] -> tupleToHostAddress (a,b,c,d)
+    [a, b, c, d] -> tupleToHostAddress (a, b, c, d)
     _ -> error "invalid ip"
