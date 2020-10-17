@@ -52,11 +52,11 @@ f sock addr active dev = \case
             Repeated ->
                 continue
     KeyEvent k t -> do
-        --TODO there are some unsafe int conversions here
         when active $ sendEvent k t
         continue
     _ -> continue
   where
+    --TODO there are some unsafe int conversions here
     continue = pure active -- don't change whether we are active
     sendEvent k t = void $ sendTo sock (B.pack [fromIntegral $ fromEnum k, fromIntegral $ fromEnum t]) addr
 
