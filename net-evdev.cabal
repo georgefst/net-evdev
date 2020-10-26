@@ -15,6 +15,7 @@ executable net-evdev
         src
     default-language: Haskell2010
     default-extensions:
+        BlockArguments
         DataKinds
         DeriveAnyClass
         DeriveGeneric
@@ -23,6 +24,7 @@ executable net-evdev
         GADTs
         LambdaCase
         NoMonomorphismRestriction
+        OverloadedLabels
         OverloadedLists
         OverloadedStrings
         ScopedTypeVariables
@@ -36,6 +38,8 @@ executable net-evdev
         bytestring ^>= 0.10.10,
         evdev ^>= 2.0.0,
         evdev-streamly ^>= 0.0.1,
+        generic-lens ^>= 2.0.0,
+        microlens ^>= 0.4.11,
         network ^>= 3.1.2,
         optparse-generic ^>= 1.4.3,
         process ^>= 1.6.9,
