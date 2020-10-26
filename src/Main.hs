@@ -98,7 +98,9 @@ f switch sock addr s dev = \case
 allEvs :: IsStream t => t IO (Device, Event)
 allEvs = readEventsMany $ allDevices <> newDevices
 
---TODO this isn't nice
+{-TODO this isn't nice
+we should use newtype to get around the fact that the 'ParseField' instance betrays that 'type HostAddress = Word32'
+-}
 readIp :: String -> HostAddress
 readIp s = case map read $ splitOn "." s of
     [a, b, c, d] -> tupleToHostAddress (a, b, c, d)
