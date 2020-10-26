@@ -22,6 +22,7 @@ executable net-evdev
         ExistentialQuantification
         FlexibleContexts
         GADTs
+        ImportQualifiedPost
         LambdaCase
         NoMonomorphismRestriction
         OverloadedLabels

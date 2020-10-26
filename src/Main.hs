@@ -2,20 +2,22 @@ module Main where
 
 import Control.Monad
 import Data.Bifunctor
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as C
 import Data.Generics.Labels ()
 import Data.List.Split
-import Evdev
-import Evdev.Codes
-import Evdev.Stream
 import Lens.Micro
 import Network.Socket
 import Network.Socket.ByteString
 import Options.Generic
-import Streamly
-import qualified Streamly.Prelude as S
 import System.Process
+
+import Data.ByteString qualified as B
+import Data.ByteString.Char8 qualified as C
+import Streamly (IsStream)
+import Streamly.Prelude qualified as S
+
+import Evdev
+import Evdev.Codes
+import Evdev.Stream
 
 {-TODO mirror Rust args
 currently we always start idle and switch with right alt
