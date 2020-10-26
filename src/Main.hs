@@ -1,12 +1,11 @@
-{-# LANGUAGE StandaloneDeriving #-}
-
 module Main (main) where
 
-import Control.Monad
+import Control.Monad.Extra
+import Control.Monad.State
 import Data.Bifunctor
 import Data.Generics.Labels ()
 import Data.List.Split
-import Lens.Micro
+import Lens.Micro.Platform
 import Network.Socket
 import Network.Socket.ByteString
 import Options.Generic
@@ -14,7 +13,8 @@ import System.Process
 
 import Data.ByteString qualified as B
 import Data.ByteString.Char8 qualified as C
-import Streamly (IsStream)
+import Streamly (SerialT)
+import Streamly.Internal.Prelude (hoist)
 import Streamly.Prelude qualified as S
 
 import Evdev
@@ -41,62 +41,61 @@ main = do
     bind sock $ SockAddrInet defaultPort 0
     let addr = SockAddrInet (fromIntegral $ port args) $ readIp $ ip args
         s =
-            State
+            AppState
                 { active = not $ startIdle args -- currently grabbed and sending events
                 , interrupted = False -- have there been any events from other keys since switch was last pressed?
                 , hangingSwitch = False -- we don't necessarily want to send a switch down event, since we might actually
                 -- be switching mode - so we carry over to the next round
                 }
-    void $ S.foldlM' (uncurry . f (switchKey args) sock addr) s $ S.map (second eventData) allEvs
+    void $ flip execStateT s $ S.mapM_ (uncurry $ f (switchKey args) sock addr) $ S.map (second eventData) allEvs
 
-data State = State
+data AppState = AppState
     { active :: Bool
     , interrupted :: Bool
     , hangingSwitch :: Bool
     }
     deriving (Generic)
 
---TODO use State monad
-f :: Key -> Socket -> SockAddr -> State -> Device -> EventData -> IO State
-f switch sock addr s dev = \case
+f :: Key -> Socket -> SockAddr -> Device -> EventData -> StateT AppState IO ()
+f switch sock addr dev = \case
     KeyEvent key eventVal ->
         if key == switch
             then case eventVal of
-                Pressed -> pure if s ^. #active then s & #interrupted .~ False & #hangingSwitch .~ True else s
-                Released ->
-                    if s ^. #interrupted && s ^. #active
-                        then sendKey key eventVal >> pure s
+                Pressed -> whenM (use #active) do
+                    #interrupted .= False
+                    #hangingSwitch .= True
+                Released -> do
+                    sendSwitch <- use #interrupted &&^ use #active
+                    if sendSwitch
+                        then sendKey key eventVal
                         else do
-                            let active' = not $ s ^. #active
-                            devName <- deviceName dev
-                            s' <-
-                                if active'
-                                    then do
-                                        --TODO grab all
-                                        callProcess "xinput" ["disable", C.unpack devName] --TODO ByteString would be nice
-                                        C.putStrLn "Switched to active"
-                                        pure s
-                                    else do
-                                        --TODO ungrab all
-                                        callProcess "xinput" ["enable", C.unpack devName]
-                                        C.putStrLn "Switched to idle"
-                                        pure $ s & #hangingSwitch .~ False
-                            pure $ s' & #active .~ active'
-                Repeated -> continue
-            else
-                if s ^. #active
-                    then do
-                        when (s ^. #hangingSwitch) $ sendKey switch Pressed
-                        sendKey key eventVal
-                        pure $ s & #interrupted .~ True & #hangingSwitch .~ False
-                    else continue
-    _ -> continue
+                            #active %= not
+                            xinput dev =<< use #active
+                            whenM (not <$> use #active) $ #hangingSwitch .= False
+                Repeated -> pure ()
+            else whenM (use #active) do
+                whenM (use #hangingSwitch) $ sendKey switch Pressed
+                sendKey key eventVal
+                #interrupted .= True
+                #hangingSwitch .= False
+    _ -> pure ()
   where
-    sendKey k t = void $ sendTo sock (B.pack [fromIntegral $ fromEnum k, fromIntegral $ fromEnum t]) addr
-    continue = pure s -- don't change state
+    sendKey k t = liftIO . void $ sendTo sock (B.pack [fromIntegral $ fromEnum k, fromIntegral $ fromEnum t]) addr
 
-allEvs :: IsStream t => t IO (Device, Event)
-allEvs = readEventsMany $ allDevices <> newDevices
+--TODO apply to all devices, and perhaps use evdev grab/ungrab
+xinput :: MonadIO m => Device -> Bool -> m ()
+xinput dev active' = liftIO do
+    devName <- C.unpack <$> deviceName dev
+    if active'
+        then do
+            callProcess "xinput" ["disable", devName] --TODO ByteString would be nice
+            C.putStrLn "Switched to active"
+        else do
+            callProcess "xinput" ["enable", devName]
+            C.putStrLn "Switched to idle"
+
+allEvs :: forall m. MonadIO m => SerialT m (Device, Event)
+allEvs = hoist liftIO . readEventsMany $ allDevices <> newDevices
 
 {-TODO this isn't nice
 we should use newtype to get around the fact that the 'ParseField' instance betrays that 'type HostAddress = Word32'
