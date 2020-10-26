@@ -64,14 +64,14 @@ f switch sock addr dev = \case
                 Pressed -> whenM (use #active) do
                     #interrupted .= False
                     #hangingSwitch .= True
-                Released -> do
-                    sendSwitch <- use #interrupted &&^ use #active
-                    if sendSwitch
-                        then sendKey key eventVal
-                        else do
-                            #active %= not
-                            xinput dev =<< use #active
-                            whenM (not <$> use #active) $ #hangingSwitch .= False
+                Released -> ifM
+                    (use #interrupted &&^ use #active)
+                    do
+                        sendKey key eventVal
+                    do
+                        #active %= not
+                        xinput dev =<< use #active
+                        whenM (not <$> use #active) $ #hangingSwitch .= False
                 Repeated -> pure ()
             else whenM (use #active) do
                 whenM (use #hangingSwitch) $ sendKey switch Pressed
