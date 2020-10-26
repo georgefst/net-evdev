@@ -1,3 +1,5 @@
+{-# LANGUAGE StandaloneDeriving #-}
+
 module Main where
 
 import Control.Monad
@@ -19,15 +21,17 @@ import Evdev
 import Evdev.Codes
 import Evdev.Stream
 
-{-TODO mirror Rust args
-currently we always start idle and switch with right alt
-device arg is irrelevant as here we always read from all
--}
+import Orphans ()
+
 data Args = Args
     { port :: Int
     , ip :: String
+    , switchKey :: Key
+    , startIdle :: Bool
     }
-    deriving (Generic, Show, ParseRecord)
+    deriving (Generic, Show)
+instance ParseRecord Args where
+    parseRecord = parseRecordWithModifiers lispCaseModifiers
 
 main :: IO ()
 main = do
@@ -38,12 +42,12 @@ main = do
     let addr = SockAddrInet (fromIntegral $ port args) $ readIp $ ip args
         s =
             State
-                { active = False -- currently grabbed and sending events
+                { active = not $ startIdle args -- currently grabbed and sending events
                 , interrupted = False -- have there been any events from other keys since switch was last pressed?
                 , hangingSwitch = False -- we don't necessarily want to send a switch down event, since we might actually
                 -- be switching mode - so we carry over to the next round
                 }
-    void $ S.foldlM' (uncurry . f sock addr) s $ S.map (second eventData) allEvs
+    void $ S.foldlM' (uncurry . f (switchKey args) sock addr) s $ S.map (second eventData) allEvs
 
 data State = State
     { active :: Bool
@@ -53,10 +57,10 @@ data State = State
     deriving (Generic)
 
 --TODO use State monad
-f :: Socket -> SockAddr -> State -> Device -> EventData -> IO State
-f sock addr s dev = \case
+f :: Key -> Socket -> SockAddr -> State -> Device -> EventData -> IO State
+f switch sock addr s dev = \case
     KeyEvent key eventVal ->
-        if key == KeyRightalt
+        if key == switch
             then case eventVal of
                 Pressed -> pure if s ^. #active then s & #interrupted .~ False & #hangingSwitch .~ True else s
                 Released ->
@@ -82,7 +86,7 @@ f sock addr s dev = \case
             else
                 if s ^. #active
                     then do
-                        when (s ^. #hangingSwitch) $ sendKey KeyRightalt Pressed
+                        when (s ^. #hangingSwitch) $ sendKey switch Pressed
                         sendKey key eventVal
                         pure $ s & #interrupted .~ True & #hangingSwitch .~ False
                     else continue
