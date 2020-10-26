@@ -80,6 +80,7 @@ f switch sock addr dev = \case
                 #hangingSwitch .= False
     _ -> pure ()
   where
+    --TODO there are some unsafe int conversions here
     sendKey k t = liftIO . void $ sendTo sock (B.pack [fromIntegral $ fromEnum k, fromIntegral $ fromEnum t]) addr
 
 --TODO apply to all devices, and perhaps use evdev grab/ungrab
