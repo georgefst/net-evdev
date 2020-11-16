@@ -29,7 +29,7 @@ data Args = Args
     { port :: Int
     , ip :: String
     , switchKey :: Key
-    , startIdle :: Bool
+    , startIdle :: Bool --TODO when false, run xinput and activeCmd at startup
     , idleCmd :: Maybe String
     , activeCmd :: Maybe String
     }
