@@ -29,7 +29,6 @@ data Args = Args
     { port :: Int
     , ip :: String
     , switchKey :: Key
-    , startIdle :: Bool --TODO when false, run xinput and activeCmd at startup
     , idleCmd :: Maybe String
     , activeCmd :: Maybe String
     }
@@ -45,7 +44,7 @@ main = do
     let addr = SockAddrInet (fromIntegral port) $ readIp ip
         s =
             AppState
-                { active = not startIdle
+                { active = False
                 , interrupted = False
                 , hangingSwitch = False
                 }
