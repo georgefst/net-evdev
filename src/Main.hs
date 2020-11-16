@@ -42,17 +42,17 @@ main = do
     let addr = SockAddrInet (fromIntegral $ port args) $ readIp $ ip args
         s =
             AppState
-                { active = not $ startIdle args -- currently grabbed and sending events
-                , interrupted = False -- have there been any events from other keys since switch was last pressed?
-                , hangingSwitch = False -- we don't necessarily want to send a switch down event, since we might actually
-                -- be switching mode - so we carry over to the next round
+                { active = not $ startIdle args
+                , interrupted = False
+                , hangingSwitch = False
                 }
     void $ flip execStateT s $ S.mapM_ (uncurry $ f (switchKey args) sock addr) $ S.map (second eventData) allEvs
 
 data AppState = AppState
-    { active :: Bool
-    , interrupted :: Bool
-    , hangingSwitch :: Bool
+    { active :: Bool -- currently grabbed and sending events
+    , interrupted :: Bool -- have there been any events from other keys since switch was last pressed?
+    , hangingSwitch :: Bool -- we don't necessarily want to send a switch down event, since we might actually
+    -- be switching mode - so we carry over to the next round
     }
     deriving (Generic)
 
