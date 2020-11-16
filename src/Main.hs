@@ -3,9 +3,10 @@ module Main (main) where
 import Control.Monad.Extra
 import Control.Monad.State
 import Data.Bifunctor
+import Data.Bool
 import Data.Generics.Labels ()
 import Data.List.Split
-import Lens.Micro.Platform
+import Lens.Micro.Platform hiding (both)
 import Network.Socket
 import Network.Socket.ByteString
 import Options.Generic
@@ -13,6 +14,7 @@ import System.Process
 
 import Data.ByteString qualified as B
 import Data.ByteString.Char8 qualified as C
+import Data.Tuple.Extra (both)
 import Streamly (SerialT)
 import Streamly.Internal.Prelude (hoist)
 import Streamly.Prelude qualified as S
@@ -28,6 +30,8 @@ data Args = Args
     , ip :: String
     , switchKey :: Key
     , startIdle :: Bool
+    , idleCmd :: Maybe String
+    , activeCmd :: Maybe String
     }
     deriving (Generic, Show)
 instance ParseRecord Args where
@@ -45,7 +49,8 @@ main = do
                 , interrupted = False
                 , hangingSwitch = False
                 }
-    void $ flip execStateT s $ S.mapM_ (uncurry $ f switchKey sock addr) $ S.map (second eventData) allEvs
+        cmds = both (maybe mempty mkProcess) (idleCmd, activeCmd)
+    void $ flip execStateT s $ S.mapM_ (uncurry $ f cmds switchKey sock addr) $ S.map (second eventData) allEvs
 
 data AppState = AppState
     { active :: Bool -- currently grabbed and sending events
@@ -55,8 +60,8 @@ data AppState = AppState
     }
     deriving (Generic)
 
-f :: Key -> Socket -> SockAddr -> Device -> EventData -> StateT AppState IO ()
-f switch sock addr dev = \case
+f :: (IO (), IO ()) -> Key -> Socket -> SockAddr -> Device -> EventData -> StateT AppState IO ()
+f cmds switch sock addr dev = \case
     KeyEvent key eventVal ->
         if key == switch
             then case eventVal of
@@ -69,6 +74,7 @@ f switch sock addr dev = \case
                         sendKey key eventVal
                     do
                         #active %= not
+                        use #active >>= liftIO . uncurry bool cmds
                         xinput dev =<< use #active
                         whenM (not <$> use #active) $ #hangingSwitch .= False
                 Repeated -> pure ()
@@ -96,6 +102,12 @@ xinput dev active' = liftIO do
 
 allEvs :: forall m. MonadIO m => SerialT m (Device, Event)
 allEvs = hoist liftIO . readEventsMany $ allDevices <> newDevices
+
+--TODO Text/ByteString
+mkProcess :: String -> IO ()
+mkProcess s = case words s of
+    [] -> error "empty process string"
+    x : xs -> callProcess x xs
 
 {-TODO this isn't nice
 we should use newtype to get around the fact that the 'ParseField' instance betrays that 'type HostAddress = Word32'
