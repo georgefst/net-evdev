@@ -35,18 +35,17 @@ instance ParseRecord Args where
 
 main :: IO ()
 main = do
-    args <- getRecord "net-evdev"
-    print args
+    Args{..} <- getRecord "net-evdev"
     sock <- socket AF_INET Datagram defaultProtocol
     bind sock $ SockAddrInet defaultPort 0
-    let addr = SockAddrInet (fromIntegral $ port args) $ readIp $ ip args
+    let addr = SockAddrInet (fromIntegral port) $ readIp ip
         s =
             AppState
-                { active = not $ startIdle args
+                { active = not startIdle
                 , interrupted = False
                 , hangingSwitch = False
                 }
-    void $ flip execStateT s $ S.mapM_ (uncurry $ f (switchKey args) sock addr) $ S.map (second eventData) allEvs
+    void $ flip execStateT s $ S.mapM_ (uncurry $ f switchKey sock addr) $ S.map (second eventData) allEvs
 
 data AppState = AppState
     { active :: Bool -- currently grabbed and sending events

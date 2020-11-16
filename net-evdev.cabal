@@ -30,6 +30,7 @@ executable net-evdev
         OverloadedLabels
         OverloadedLists
         OverloadedStrings
+        RecordWildCards
         ScopedTypeVariables
         TypeOperators
         ViewPatterns
