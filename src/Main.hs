@@ -1,5 +1,6 @@
 module Main (main) where
 
+import Control.Concurrent
 import Control.Monad.Extra
 import Control.Monad.State
 import Data.Bifunctor
@@ -106,7 +107,7 @@ allEvs = hoist liftIO . readEventsMany $ allDevices <> newDevices
 mkProcess :: String -> IO ()
 mkProcess s = case words s of
     [] -> error "empty process string"
-    x : xs -> callProcess x xs
+    x : xs -> void . forkIO $ callProcess x xs
 
 {-TODO this isn't nice
 we should use newtype to get around the fact that the 'ParseField' instance betrays that 'type HostAddress = Word32'
