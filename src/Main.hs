@@ -11,12 +11,14 @@ import Lens.Micro.Platform hiding (both)
 import Network.Socket
 import Network.Socket.ByteString
 import Options.Generic
-import System.Process
+import RawFilePath
+import Text.Pretty.Simple
 
+import Data.ByteString (ByteString)
 import Data.ByteString qualified as B
+import Data.ByteString.Char8 qualified as BS
 import Data.ByteString.Char8 qualified as C
 import Data.Tuple.Extra (both)
-import RawFilePath (RawFilePath)
 import Streamly (SerialT)
 import Streamly.Internal.Prelude (hoist)
 import Streamly.Prelude qualified as S
@@ -32,8 +34,8 @@ data Args = Args
     , ip :: String
     , device :: Maybe RawFilePath
     , switchKey :: Key
-    , idleCmd :: Maybe String
-    , activeCmd :: Maybe String
+    , idleCmd :: Maybe ByteString
+    , activeCmd :: Maybe ByteString
     }
     deriving (Generic, Show)
 instance ParseRecord Args where
@@ -98,23 +100,22 @@ f cmds switch sock addr dev = \case
 --TODO apply to all devices, and perhaps use evdev grab/ungrab
 xinput :: MonadIO m => Device -> Bool -> m ()
 xinput dev active' = liftIO do
-    devName <- C.unpack <$> deviceName dev
+    devName <- deviceName dev
     if active'
         then do
-            callProcess "xinput" ["disable", devName] --TODO ByteString would be nice
+            callProcess' "xinput" ["disable", devName]
             C.putStrLn "Switched to active"
         else do
-            callProcess "xinput" ["enable", devName]
+            callProcess' "xinput" ["enable", devName]
             C.putStrLn "Switched to idle"
 
 allEvs :: SerialT IO (Device, Event)
 allEvs = readEventsMany $ allDevices <> newDevices
 
---TODO Text/ByteString
-mkProcess :: String -> IO ()
-mkProcess s = case words s of
+mkProcess :: ByteString -> IO ()
+mkProcess s = case BS.words s of
     [] -> error "empty process string"
-    x : xs -> void . forkIO $ callProcess x xs
+    x : xs -> void . forkIO $ callProcess' x xs
 
 {-TODO this isn't nice
 we should use newtype to get around the fact that the 'ParseField' instance betrays that 'type HostAddress = Word32'
@@ -123,3 +124,9 @@ readIp :: String -> HostAddress
 readIp s = case map read $ splitOn "." s of
     [a, b, c, d] -> tupleToHostAddress (a, b, c, d)
     _ -> error "invalid ip"
+
+--TODO act same as System.Process.callProcess
+callProcess' :: RawFilePath -> [ByteString] -> IO ()
+callProcess' x xs =
+    pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsStringStyle = Literal}
+        =<< readProcessWithExitCode (proc x xs)
