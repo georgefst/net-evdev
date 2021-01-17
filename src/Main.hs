@@ -6,6 +6,7 @@ import Control.Monad.State
 import Data.Bifunctor
 import Data.Bool
 import Data.Generics.Labels ()
+import Data.List
 import Data.List.Split
 import Lens.Micro.Platform hiding (both)
 import Network.Socket
@@ -31,7 +32,7 @@ import Orphans ()
 
 data Args = Args
     { port :: Int
-    , ip :: String
+    , ip :: Ip
     , device :: Maybe RawFilePath
     , switchKey :: Key
     , idleCmd :: Maybe ByteString
@@ -46,7 +47,7 @@ main = do
     Args{..} <- getRecord "net-evdev"
     sock <- socket AF_INET Datagram defaultProtocol
     bind sock $ SockAddrInet defaultPort 0
-    let addr = SockAddrInet (fromIntegral port) $ readIp ip
+    let addr = SockAddrInet (fromIntegral port) $ unIp ip
         s =
             AppState
                 { active = False
@@ -117,16 +118,20 @@ mkProcess s = case BS.words s of
     [] -> error "empty process string"
     x : xs -> void . forkIO $ callProcess' x xs
 
-{-TODO this isn't nice
-we should use newtype to get around the fact that the 'ParseField' instance betrays that 'type HostAddress = Word32'
--}
-readIp :: String -> HostAddress
-readIp s = case map read $ splitOn "." s of
-    [a, b, c, d] -> tupleToHostAddress (a, b, c, d)
-    _ -> error "invalid ip"
-
 --TODO act same as System.Process.callProcess
 callProcess' :: RawFilePath -> [ByteString] -> IO ()
 callProcess' x xs =
     pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsStringStyle = Literal}
         =<< readProcessWithExitCode (proc x xs)
+
+--TODO this belongs in a library
+newtype Ip = Ip {unIp :: HostAddress}
+    deriving (Generic, ParseRecord, ParseField, ParseFields)
+instance Show Ip where
+    show (Ip x) = intercalate "." $ map show [a, b, c, d]
+      where
+        (a, b, c, d) = hostAddressToTuple x
+instance Read Ip where
+    readsPrec _ s = case map read $ splitOn "." s of
+        [a, b, c, d] -> pure $ (,"") $ Ip $ tupleToHostAddress (a, b, c, d)
+        _ -> []
