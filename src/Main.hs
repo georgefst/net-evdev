@@ -16,6 +16,7 @@ import System.Process
 import Data.ByteString qualified as B
 import Data.ByteString.Char8 qualified as C
 import Data.Tuple.Extra (both)
+import RawFilePath (RawFilePath)
 import Streamly (SerialT)
 import Streamly.Internal.Prelude (hoist)
 import Streamly.Prelude qualified as S
@@ -29,6 +30,7 @@ import Orphans ()
 data Args = Args
     { port :: Int
     , ip :: String
+    , device :: Maybe RawFilePath
     , switchKey :: Key
     , idleCmd :: Maybe String
     , activeCmd :: Maybe String
@@ -49,8 +51,13 @@ main = do
                 , interrupted = False
                 , hangingSwitch = False
                 }
+    let evs = hoist liftIO case device of
+            Nothing -> allEvs
+            Just p -> do
+                d <- liftIO $ newDevice p
+                (d,) <$> readEvents d
         cmds = both (maybe mempty mkProcess) (idleCmd, activeCmd)
-    void $ flip execStateT s $ S.mapM_ (uncurry $ f cmds switchKey sock addr) $ S.map (second eventData) allEvs
+    void $ flip execStateT s $ S.mapM_ (uncurry $ f cmds switchKey sock addr) $ S.map (second eventData) evs
 
 data AppState = AppState
     { active :: Bool -- currently grabbed and sending events
@@ -100,8 +107,8 @@ xinput dev active' = liftIO do
             callProcess "xinput" ["enable", devName]
             C.putStrLn "Switched to idle"
 
-allEvs :: forall m. MonadIO m => SerialT m (Device, Event)
-allEvs = hoist liftIO . readEventsMany $ allDevices <> newDevices
+allEvs :: SerialT IO (Device, Event)
+allEvs = readEventsMany $ allDevices <> newDevices
 
 --TODO Text/ByteString
 mkProcess :: String -> IO ()

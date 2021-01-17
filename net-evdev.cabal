@@ -32,6 +32,7 @@ executable net-evdev
         OverloadedStrings
         RecordWildCards
         ScopedTypeVariables
+        TupleSections
         TypeOperators
         ViewPatterns
     ghc-options:
@@ -49,5 +50,6 @@ executable net-evdev
         network ^>= 3.1.2,
         optparse-generic ^>= 1.4.3,
         process ^>= 1.6.9,
+        rawfilepath ^>= 0.2.4,
         split ^>= 0.2.3,
         streamly ^>= 0.7.2,
