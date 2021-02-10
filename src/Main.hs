@@ -13,7 +13,6 @@ import Network.Socket
 import Network.Socket.ByteString
 import Options.Generic
 import RawFilePath
-import Text.Pretty.Simple
 
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as B
@@ -120,9 +119,7 @@ mkProcess s = case BS.words s of
 
 --TODO act same as System.Process.callProcess
 callProcess' :: RawFilePath -> [ByteString] -> IO ()
-callProcess' x xs =
-    pPrintOpt CheckColorTty defaultOutputOptionsDarkBg{outputOptionsStringStyle = Literal}
-        =<< readProcessWithExitCode (proc x xs)
+callProcess' x xs = void $ readProcessWithExitCode $ proc x xs
 
 --TODO this belongs in a library
 newtype Ip = Ip {unIp :: HostAddress}
