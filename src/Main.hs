@@ -14,6 +14,7 @@ import Network.Socket.ByteString
 import Options.Generic
 import RawFilePath
 
+import Control.Monad.Catch (catchIOError)
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as B
 import Data.ByteString.Char8 qualified as BS
@@ -59,7 +60,8 @@ main = do
                 d <- liftIO $ newDevice p
                 (d,) <$> readEvents d
         cmds = both (maybe mempty mkProcess) (idleCmd, activeCmd)
-    void $ flip execStateT s $ S.mapM_ (uncurry $ f cmds switchKey sock addr) $ S.map (second eventData) evs
+        f' dev ev = f cmds switchKey sock addr dev ev `catchIOError` \e -> liftIO $ putStr "Error: " >> print e
+    void $ flip execStateT s $ S.mapM_ (uncurry f') $ S.map (second eventData) evs
 
 data AppState = AppState
     { active :: Bool -- currently grabbed and sending events
