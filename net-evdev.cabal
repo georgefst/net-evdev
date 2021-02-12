@@ -42,7 +42,7 @@ executable net-evdev
         base ^>= 4.14.0.0,
         bytestring ^>= 0.10.10,
         exceptions ^>= 0.10.4,
-        evdev ^>= 2.0.0,
+        evdev ^>= 2.1.0,
         evdev-streamly ^>= 0.0.1,
         extra ^>= 1.7.8,
         generic-lens ^>= 2.0.0,
