@@ -21,7 +21,7 @@ import Data.ByteString.Char8 qualified as BS
 import Data.ByteString.Char8 qualified as C
 import Data.Tuple.Extra (both)
 import Streamly (SerialT)
-import Streamly.Internal.Prelude (hoist)
+import Streamly.Internal.Data.Stream.IsStream (hoist)
 import Streamly.Prelude qualified as S
 
 import Evdev

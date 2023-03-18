@@ -1,4 +1,4 @@
-cabal-version:      2.4
+cabal-version:      3.0
 name:               net-evdev
 synopsis:           While right-alt is held, intercept keys and send to a remote device.
 version:            0.1.0.0
@@ -39,19 +39,19 @@ executable net-evdev
         -threaded
         -Wall
     build-depends:
-        base ^>= 4.14.0.0,
-        bytestring ^>= 0.10.10,
+        base >= 4.14.0.0,
+        bytestring ^>= {0.10.10, 0.11},
         exceptions ^>= 0.10.4,
-        evdev ^>= 2.1.0,
+        evdev ^>= {2.1.0, 2.2},
         evdev-streamly ^>= 0.0.1,
         extra ^>= 1.7.8,
-        generic-lens ^>= 2.0.0,
+        generic-lens ^>= {2.0.0, 2.1, 2.2},
         microlens-platform ^>= 0.4.1,
-        mtl ^>= 2.2.2,
+        mtl ^>= {2.2.2, 2.3},
         network ^>= 3.1.2,
         optparse-generic ^>= 1.4.3,
-        pretty-simple ^>= 4.0,
+        pretty-simple ^>= {4.0, 4.1},
         process ^>= 1.6.9,
-        rawfilepath ^>= 0.2.4,
+        rawfilepath ^>= {0.2.4, 1.0},
         split ^>= 0.2.3,
-        streamly ^>= 0.7.2,
+        streamly ^>= {0.7.2, 0.8},
