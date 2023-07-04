@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               net-evdev
-synopsis:           While right-alt is held, intercept keys and send to a remote device.
+synopsis:           When a trigger key is pressed, intercept keys and send to a remote device.
 version:            0.1.0.0
 license:            BSD-3-Clause
 license-file:       LICENSE
