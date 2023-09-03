@@ -83,7 +83,7 @@ f cmds switch sock addr dev = \case
                 sendKey key eventVal
             do
                 #active %= not
-                use #active >>= liftIO . uncurry bool cmds
+                liftIO . uncurry bool cmds =<< use #active
                 xinput dev =<< use #active
                 unlessM (use #active) $ #hangingSwitch .= False
         Repeated -> pure ()
