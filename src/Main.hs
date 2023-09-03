@@ -74,22 +74,24 @@ data AppState = AppState
 f :: (IO (), IO ()) -> Key -> Socket -> SockAddr -> Device -> EventData -> StateT AppState IO ()
 f cmds switch sock addr dev = \case
     KeyEvent key eventVal | key == switch -> case eventVal of
-        Pressed -> whenM (use #active) do
+        Pressed -> do
             #interrupted .= False
             #hangingSwitch .= True
         Released -> ifM
-            (use #interrupted &&^ use #active)
+            (use #interrupted)
             do
-                sendKey key eventVal
+                whenM (use #active) $ sendKey key eventVal
             do
                 #active %= not
                 liftIO . uncurry bool cmds =<< use #active
                 xinput dev =<< use #active
-                unlessM (use #active) $ #hangingSwitch .= False
+                #hangingSwitch .= False
         Repeated -> pure ()
-    KeyEvent key eventVal -> whenM (use #active) do
-        whenM (use #hangingSwitch) $ sendKey switch Pressed >> #hangingSwitch .= False
-        sendKey key eventVal
+    KeyEvent key eventVal -> do
+        whenM (use #active) do
+            whenM (use #hangingSwitch) $ sendKey switch Pressed
+            sendKey key eventVal
+        #hangingSwitch .= False
         #interrupted .= True
     _ -> pure ()
   where
