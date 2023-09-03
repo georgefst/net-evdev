@@ -88,10 +88,9 @@ f cmds switch sock addr dev = \case
                 whenM (not <$> use #active) $ #hangingSwitch .= False
         Repeated -> pure ()
     KeyEvent key eventVal -> whenM (use #active) do
-        whenM (use #hangingSwitch) $ sendKey switch Pressed
+        whenM (use #hangingSwitch) $ sendKey switch Pressed >> #hangingSwitch .= False
         sendKey key eventVal
         #interrupted .= True
-        #hangingSwitch .= False
     _ -> pure ()
   where
     -- TODO there are some unsafe int conversions here
