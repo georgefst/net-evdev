@@ -1,7 +1,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
---TODO upstream to 'evdev' - note that the Generic instance takes an annoyingly long time to derive
+-- TODO upstream to 'evdev' - note that the Generic instance takes an annoyingly long time to derive
 
 module Orphans where
 
