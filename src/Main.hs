@@ -73,34 +73,32 @@ data AppState = AppState
 
 f :: (IO (), IO ()) -> Key -> Socket -> SockAddr -> Device -> EventData -> StateT AppState IO ()
 f cmds switch sock addr dev = \case
-    KeyEvent key eventVal ->
-        if key == switch
-            then case eventVal of
-                Pressed -> whenM (use #active) do
-                    #interrupted .= False
-                    #hangingSwitch .= True
-                Released -> ifM
-                    (use #interrupted &&^ use #active)
-                    do
-                        sendKey key eventVal
-                    do
-                        #active %= not
-                        use #active >>= liftIO . uncurry bool cmds
-                        xinput dev =<< use #active
-                        whenM (not <$> use #active) $ #hangingSwitch .= False
-                Repeated -> pure ()
-            else whenM (use #active) do
-                whenM (use #hangingSwitch) $ sendKey switch Pressed
+    KeyEvent key eventVal | key == switch -> case eventVal of
+        Pressed -> whenM (use #active) do
+            #interrupted .= False
+            #hangingSwitch .= True
+        Released -> ifM
+            (use #interrupted &&^ use #active)
+            do
                 sendKey key eventVal
-                #interrupted .= True
-                #hangingSwitch .= False
+            do
+                #active %= not
+                use #active >>= liftIO . uncurry bool cmds
+                xinput dev =<< use #active
+                whenM (not <$> use #active) $ #hangingSwitch .= False
+        Repeated -> pure ()
+    KeyEvent key eventVal -> whenM (use #active) do
+        whenM (use #hangingSwitch) $ sendKey switch Pressed
+        sendKey key eventVal
+        #interrupted .= True
+        #hangingSwitch .= False
     _ -> pure ()
   where
-    --TODO there are some unsafe int conversions here
+    -- TODO there are some unsafe int conversions here
     sendKey k t = liftIO . void $ sendTo sock (B.pack [fromIntegral $ fromEnum k, fromIntegral $ fromEnum t]) addr
 
---TODO apply to all devices, and perhaps use evdev grab/ungrab
-xinput :: MonadIO m => Device -> Bool -> m ()
+-- TODO apply to all devices, and perhaps use evdev grab/ungrab
+xinput :: (MonadIO m) => Device -> Bool -> m ()
 xinput dev active' = liftIO do
     devName <- deviceName dev
     if active'
@@ -119,11 +117,11 @@ mkProcess s = case BS.words s of
     [] -> error "empty process string"
     x : xs -> void . forkIO $ callProcess' x xs
 
---TODO act same as System.Process.callProcess
+-- TODO act same as System.Process.callProcess
 callProcess' :: RawFilePath -> [ByteString] -> IO ()
 callProcess' x xs = void $ readProcessWithExitCode $ proc x xs
 
---TODO this belongs in a library
+-- TODO this belongs in a library
 newtype Ip = Ip {unIp :: HostAddress}
     deriving (Generic)
     deriving anyclass (ParseRecord, ParseField, ParseFields)
