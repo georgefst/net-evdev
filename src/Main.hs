@@ -80,7 +80,7 @@ f cmds switch sock addr dev = \case
         Released -> ifM
             (use #interrupted)
             do
-                whenM (use #active) $ sendKey key eventVal
+                sendKey key eventVal
             do
                 #active %= not
                 liftIO . uncurry bool cmds =<< use #active
@@ -88,15 +88,18 @@ f cmds switch sock addr dev = \case
                 #hangingSwitch .= False
         Repeated -> pure ()
     KeyEvent key eventVal -> do
-        whenM (use #active) do
-            whenM (use #hangingSwitch) $ sendKey switch Pressed
-            sendKey key eventVal
+        whenM (use #hangingSwitch) $ sendKey switch Pressed
+        sendKey key eventVal
         #hangingSwitch .= False
         #interrupted .= True
     _ -> pure ()
   where
-    -- TODO there are some unsafe int conversions here
-    sendKey k t = liftIO . void $ sendTo sock (B.pack [fromIntegral $ fromEnum k, fromIntegral $ fromEnum t]) addr
+    sendKey k t =
+        whenM (use #active)
+            . liftIO
+            . void
+            -- TODO there are some unsafe int conversions here
+            $ sendTo sock (B.pack [fromIntegral $ fromEnum k, fromIntegral $ fromEnum t]) addr
 
 -- TODO apply to all devices, and perhaps use evdev grab/ungrab
 xinput :: (MonadIO m) => Device -> Bool -> m ()
