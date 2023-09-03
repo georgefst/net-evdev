@@ -20,6 +20,7 @@ executable net-evdev
         BlockArguments
         DataKinds
         DeriveAnyClass
+        DerivingStrategies
         ExistentialQuantification
         GADTs
         LambdaCase

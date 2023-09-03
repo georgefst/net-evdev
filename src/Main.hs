@@ -125,7 +125,8 @@ callProcess' x xs = void $ readProcessWithExitCode $ proc x xs
 
 --TODO this belongs in a library
 newtype Ip = Ip {unIp :: HostAddress}
-    deriving (Generic, ParseRecord, ParseField, ParseFields)
+    deriving (Generic)
+    deriving anyclass (ParseRecord, ParseField, ParseFields)
 instance Show Ip where
     show (Ip x) = intercalate "." $ map show [a, b, c, d]
       where
