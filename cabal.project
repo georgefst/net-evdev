@@ -1,0 +1,7 @@
+packages: .
+
+allow-newer:
+  -- https://github.com/composewell/streamly/issues/2853#issuecomment-2599852258
+  streamly:template-haskell, streamly-core:template-haskell,
+  -- deprecated library - can be removed soon once `evdev` stops depending on it
+  filepath-bytestring:base,
