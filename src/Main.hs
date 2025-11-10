@@ -84,7 +84,7 @@ f cmds switch sock addr dev = \case
             do
                 #active %= not
                 liftIO . uncurry bool cmds =<< use #active
-                xinput dev =<< use #active
+                grabUngrab dev =<< use #active
                 #hangingSwitch .= False
         Repeated -> pure ()
     KeyEvent key eventVal -> do
@@ -101,16 +101,15 @@ f cmds switch sock addr dev = \case
             -- TODO there are some unsafe int conversions here
             $ sendTo sock (B.pack [fromIntegral $ fromEnum k, fromIntegral $ fromEnum t]) addr
 
--- TODO apply to all devices, and perhaps use evdev grab/ungrab
-xinput :: (MonadIO m) => Device -> Bool -> m ()
-xinput dev active' = liftIO do
-    devName <- deviceName dev
+-- TODO apply to all devices
+grabUngrab :: (MonadIO m) => Device -> Bool -> m ()
+grabUngrab dev active' = liftIO do
     if active'
         then do
-            callProcess' "xinput" ["disable", devName]
+            grabDevice dev
             C.putStrLn "Switched to active"
         else do
-            callProcess' "xinput" ["enable", devName]
+            ungrabDevice dev
             C.putStrLn "Switched to idle"
 
 allEvs :: SerialT IO (Device, Event)
