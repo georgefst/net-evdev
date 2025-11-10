@@ -20,8 +20,7 @@
             hixProject =
               final.haskell-nix.hix.project {
                 src = ./.;
-                # uncomment with your current system for `nix flake show` to work:
-                #evalSystem = "x86_64-linux";
+                evalSystem = "x86_64-linux";
               };
           })
         ];
